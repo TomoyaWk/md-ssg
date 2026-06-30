@@ -3,7 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	"md-ssg/internal/parser"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type Config struct {
@@ -33,11 +36,26 @@ func run(cfg Config) error {
 		return fmt.Errorf("md格納先フォルダの読み込みに失敗: %w", err)
 	}
 	for _, md := range mds {
-		if md.IsDir() {
+		if md.IsDir() || filepath.Ext(md.Name()) != ".md" {
 			continue
 		}
-		fmt.Printf("Found: %s\n", md.Name())
+		srcPath := filepath.Join(cfg.SrcDir, md.Name())
+		raw, err := os.ReadFile(srcPath)
+		if err != nil {
+			return fmt.Errorf("ファイルの読み込みに失敗:%s :%w", md.Name(), err)
+		}
+		slug := strings.TrimSuffix(md.Name(), ".md")
+		post, err := parser.ParseFile(slug, string(raw))
+		if err != nil {
+			return fmt.Errorf("ファイルの読み込みに失敗:%s :%w", md.Name(), err)
+		}
+		fmt.Printf("slug: %s\n", post.Slug)
+		fmt.Printf("title: %s\n", post.Title)
+		fmt.Printf("date: %s\n", post.Date)
+		fmt.Printf("content:\n%s\n", post.Content)
+		fmt.Println("---")
 	}
+
 	return nil
 }
 
