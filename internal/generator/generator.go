@@ -3,6 +3,7 @@ package generator
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"md-ssg/internal/parser"
 	"os"
 	"path/filepath"
@@ -15,7 +16,8 @@ type TemplateData struct {
 }
 
 type Generator struct {
-	tmpl *template.Template
+	tmpl   *template.Template
+	cssSrc string
 }
 
 func New(templatePath string) (*Generator, error) {
@@ -23,7 +25,31 @@ func New(templatePath string) (*Generator, error) {
 	if err != nil {
 		return nil, fmt.Errorf(" %w", err)
 	}
-	return &Generator{tmpl: tmpl}, nil
+	cssSrc := filepath.Join(filepath.Dir(templatePath), "style.css")
+	return &Generator{tmpl: tmpl, cssSrc: cssSrc}, nil
+}
+
+// CopyStaticAssets はテンプレートと同じディレクトリの style.css を出力先へコピーする
+func (g *Generator) CopyStaticAssets(outDir string) error {
+	src, err := os.Open(g.cssSrc)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("style.cssの読み込みに失敗しました: %w", err)
+	}
+	defer src.Close()
+
+	dst, err := os.Create(filepath.Join(outDir, "style.css"))
+	if err != nil {
+		return fmt.Errorf("style.cssの出力に失敗しました: %w", err)
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return fmt.Errorf("style.cssのコピーに失敗しました: %w", err)
+	}
+	return nil
 }
 
 func (g *Generator) Render(post parser.Post, OutDir string) error {
