@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"md-ssg/internal/generator"
 	"md-ssg/internal/parser"
 	"os"
 	"path/filepath"
@@ -10,19 +11,22 @@ import (
 )
 
 type Config struct {
-	SrcDir string
-	OutDir string
+	SrcDir       string
+	OutDir       string
+	TemplatePath string
 }
 
 // 引数パース
 func parseArgs() Config {
 	src := flag.String("src", "posts", "md格納先フォルダ指定")
 	out := flag.String("out", "public", "HTML出力先フォルダ指定")
+	tmpl := flag.String("template", "templates/post.html", "パーステンプレートファイル場所指定")
 	flag.Parse()
 
 	return Config{
-		SrcDir: *src,
-		OutDir: *out,
+		SrcDir:       *src,
+		OutDir:       *out,
+		TemplatePath: *tmpl,
 	}
 }
 
@@ -35,6 +39,12 @@ func run(cfg Config) error {
 	if err != nil {
 		return fmt.Errorf("md格納先フォルダの読み込みに失敗: %w", err)
 	}
+
+	gen, err := generator.New(cfg.TemplatePath)
+	if err != nil {
+		return fmt.Errorf("テンプレートファイルの読み込みに失敗: %w", err)
+	}
+
 	for _, md := range mds {
 		if md.IsDir() || filepath.Ext(md.Name()) != ".md" {
 			continue
@@ -42,20 +52,19 @@ func run(cfg Config) error {
 		srcPath := filepath.Join(cfg.SrcDir, md.Name())
 		raw, err := os.ReadFile(srcPath)
 		if err != nil {
-			return fmt.Errorf("ファイルの読み込みに失敗:%s :%w", md.Name(), err)
+			return fmt.Errorf("ファイルの読み込みに失敗: %s: %w", md.Name(), err)
 		}
 		slug := strings.TrimSuffix(md.Name(), ".md")
 		post, err := parser.ParseFile(slug, string(raw))
 		if err != nil {
-			return fmt.Errorf("ファイルの読み込みに失敗:%s :%w", md.Name(), err)
+			return fmt.Errorf("ファイルの解析に失敗: %s: %w", md.Name(), err)
 		}
-		fmt.Printf("slug: %s\n", post.Slug)
-		fmt.Printf("title: %s\n", post.Title)
-		fmt.Printf("date: %s\n", post.Date)
-		fmt.Printf("content:\n%s\n", post.Content)
-		fmt.Println("---")
-	}
 
+		if err := gen.Render(post, cfg.OutDir); err != nil {
+			return fmt.Errorf("render %s: %w", md.Name(), err)
+		}
+		fmt.Printf("generated: %s.html\n", post.Slug)
+	}
 	return nil
 }
 
@@ -66,5 +75,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)
 	}
+	fmt.Print("test")
 	os.Exit(0)
 }
