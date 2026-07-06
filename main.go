@@ -45,6 +45,10 @@ func run(cfg Config) error {
 		return fmt.Errorf("テンプレートファイルの読み込みに失敗: %w", err)
 	}
 
+	if err := gen.CopyStaticAssets(cfg.OutDir); err != nil {
+		return fmt.Errorf("静的アセットのコピーに失敗: %w", err)
+	}
+
 	for _, md := range mds {
 		if md.IsDir() || filepath.Ext(md.Name()) != ".md" {
 			continue
