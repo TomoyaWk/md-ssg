@@ -7,11 +7,27 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <article>
-        <h1>Hello World</h1>
-        <time>2024-01-15</time>
-        <div class="content">
-            <h1>はじめての投稿</h1>
+
+<header class="vp-nav">
+    <div class="vp-nav-inner">
+        <a class="vp-nav-logo" href="/">
+            <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+                <path d="M24 4L4 14v20l20 10 20-10V14L24 4z"/>
+            </svg>
+            MarkDownViewer
+        </a>
+    </div>
+</header>
+
+<div class="vp-layout">
+    <main class="vp-content">
+        <article class="vp-doc">
+            <div class="vp-doc-header">
+                <h1>Hello World</h1>
+                <time>2024-01-15</time>
+            </div>
+            <div class="vp-doc-body">
+                <h1>はじめての投稿</h1>
 <p>これは<strong>太字</strong>で、これは<code>コード</code>です。</p>
 <h2>セクション2</h2>
 <ul>
@@ -19,7 +35,48 @@
 <li>アイテム2</li>
 </ul>
 
+            </div>
+        </article>
+    </main>
+
+    <aside class="vp-aside">
+        <div class="vp-aside-container">
+            <p class="vp-toc-title">このページの内容</p>
+            <ul class="vp-toc-list" id="vp-toc-list"></ul>
         </div>
-    </article>
+    </aside>
+</div>
+
+<script>
+(function () {
+    var headings = document.querySelectorAll('.vp-doc-body h2, .vp-doc-body h3');
+    var tocList = document.getElementById('vp-toc-list');
+    if (!tocList || headings.length === 0) return;
+
+    headings.forEach(function (h, i) {
+        if (!h.id) {
+            h.id = 'h-' + i;
+        }
+        var li = document.createElement('li');
+        li.className = 'vp-toc-item' + (h.tagName === 'H3' ? ' is-h3' : '');
+        var a = document.createElement('a');
+        a.href = '#' + h.id;
+        a.textContent = h.textContent;
+        li.appendChild(a);
+        tocList.appendChild(li);
+    });
+
+    var links = tocList.querySelectorAll('a');
+    var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+            var link = tocList.querySelector('a[href="#' + entry.target.id + '"]');
+            if (link) link.classList.toggle('is-active', entry.isIntersecting);
+        });
+    }, { rootMargin: '-8% 0% -82% 0%', threshold: 0 });
+
+    headings.forEach(function (h) { observer.observe(h); });
+})();
+</script>
+
 </body>
 </html>
